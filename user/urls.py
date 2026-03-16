@@ -1,6 +1,6 @@
 from django.urls import path
 
-from user.views import UserRegisterView
+from user.views import UserRegisterView, UserLoginView
 
 app_name = "user"
 
@@ -10,5 +10,10 @@ urlpatterns = [
         "register/",
         UserRegisterView.as_view(),
         name="user_register"
+    ),
+    path(
+        "login/",
+        UserLoginView.as_view(),
+        name="get_user_token"
     )
 ]
