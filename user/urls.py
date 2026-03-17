@@ -9,16 +9,16 @@ urlpatterns = [
     path(
         "register/",
         UserRegisterView.as_view(),
-        name="user_register"
+        name="create"
     ),
     path(
         "login/",
         UserLoginView.as_view(),
-        name="get_user_token"
+        name="login"
     ),
     path(
         "me/",
         UserRetrieveUpdateView.as_view(),
-        name="user_retrieve_update"
+        name="manage"
     ),
 ]
