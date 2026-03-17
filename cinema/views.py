@@ -29,7 +29,7 @@ class GenreViewSet(ListCreateAPIView):
     serializer_class = GenreSerializer
 
 
-class ActorViewSet(viewsets.ModelViewSet):
+class ActorViewSet(ListCreateAPIView):
     queryset = Actor.objects.all()
     serializer_class = ActorSerializer
 
