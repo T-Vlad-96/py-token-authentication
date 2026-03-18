@@ -2,11 +2,14 @@ from datetime import datetime
 
 from django.db.models import F, Count
 from rest_framework import viewsets
+from rest_framework import status
 from rest_framework.generics import (
     ListCreateAPIView,
     RetrieveAPIView
 )
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 from cinema.models import Genre, Actor, CinemaHall, Movie, MovieSession, Order
 
@@ -158,21 +161,54 @@ class OrderPagination(PageNumberPagination):
     max_page_size = 100
 
 
-class OrderViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.prefetch_related(
-        "tickets__movie_session__movie", "tickets__movie_session__cinema_hall"
-    )
-    serializer_class = OrderSerializer
+class OrderCreateListViewSet(viewsets.ViewSet):
+    # The style to use for queryset pagination.
     pagination_class = OrderPagination
+    permission_classes =[IsAuthenticated]
 
-    def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
+    def list(self, request, *args, **kwargs):
+        queryset = Order.objects.prefetch_related(
+            "tickets__movie_session__movie",
+            "tickets__movie_session__cinema_hall"
+        ).filter(user=request.user)
 
-    def get_serializer_class(self):
-        if self.action == "list":
-            return OrderListSerializer
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = OrderListSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
-        return OrderSerializer
+        serializer = OrderListSerializer(queryset, many=True)
+        return Response(serializer.data)
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+    def create(self, request):
+        serializer = OrderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(user=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @property
+    def paginator(self):
+        """
+        The paginator instance associated with the view, or `None`.
+        """
+        if not hasattr(self, '_paginator'):
+            if self.pagination_class is None:
+                self._paginator = None
+            else:
+                self._paginator = self.pagination_class()
+        return self._paginator
+
+    def paginate_queryset(self, queryset):
+        """
+        Return a single page of results, or `None` if pagination is disabled.
+        """
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(queryset, self.request, view=self)
+
+    def get_paginated_response(self, data):
+        """
+        Return a paginated style `Response` object for the given output data.
+        """
+        assert self.paginator is not None
+        return self.paginator.get_paginated_response(data)

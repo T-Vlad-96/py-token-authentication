@@ -6,14 +6,13 @@ from cinema.views import (
     ActorViewSet,
     CinemaHallViewSet,
     MovieSessionViewSet,
-    OrderViewSet,
     MovieListCreateView,
-    MovieDetailView
+    MovieDetailView,
+    OrderCreateListViewSet
 )
 
 router = routers.DefaultRouter()
 router.register("movie_sessions", MovieSessionViewSet)
-router.register("orders", OrderViewSet)
 
 urlpatterns = [
     path("", include(router.urls)),
@@ -41,6 +40,16 @@ urlpatterns = [
         "movies/<int:pk>/",
         MovieDetailView.as_view(),
         name="movie-detail"
+    ),
+    path(
+        "orders/",
+        OrderCreateListViewSet.as_view(
+            actions={
+                "get": "list",
+                "post": "create"
+            }
+        ),
+        name="order-list"
     )
 ]
 
