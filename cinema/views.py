@@ -124,9 +124,11 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
         MovieSession.objects.all()
         .select_related("movie", "cinema_hall")
         .annotate(
-            tickets_available=F("cinema_hall__rows")
-                              * F("cinema_hall__seats_in_row")
-                              - Count("tickets")
+            tickets_available=(
+                F("cinema_hall__rows")
+                * F("cinema_hall__seats_in_row")
+                - Count("tickets")
+            )
         )
     )
     serializer_class = MovieSessionSerializer
@@ -164,7 +166,7 @@ class OrderPagination(PageNumberPagination):
 class OrderCreateListViewSet(viewsets.ViewSet):
     # The style to use for queryset pagination.
     pagination_class = OrderPagination
-    permission_classes =[IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
         queryset = Order.objects.prefetch_related(
@@ -191,7 +193,7 @@ class OrderCreateListViewSet(viewsets.ViewSet):
         """
         The paginator instance associated with the view, or `None`.
         """
-        if not hasattr(self, '_paginator'):
+        if not hasattr(self, "_paginator"):
             if self.pagination_class is None:
                 self._paginator = None
             else:
@@ -204,7 +206,9 @@ class OrderCreateListViewSet(viewsets.ViewSet):
         """
         if self.paginator is None:
             return None
-        return self.paginator.paginate_queryset(queryset, self.request, view=self)
+        return self.paginator.paginate_queryset(
+            queryset, self.request, view=self
+        )
 
     def get_paginated_response(self, data):
         """
