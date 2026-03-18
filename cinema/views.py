@@ -3,7 +3,8 @@ from datetime import datetime
 from django.db.models import F, Count
 from rest_framework import viewsets
 from rest_framework.generics import (
-    ListCreateAPIView
+    ListCreateAPIView,
+    RetrieveAPIView
 )
 from rest_framework.pagination import PageNumberPagination
 
@@ -108,6 +109,11 @@ class MovieListCreateView(ListCreateAPIView):
             queryset = queryset.filter(actors__id__in=actors_ids)
 
         return queryset.distinct()
+
+
+class MovieDetailView(RetrieveAPIView):
+    queryset = Movie.objects.all()
+    serializer_class = MovieDetailSerializer
 
 
 class MovieSessionViewSet(viewsets.ModelViewSet):
