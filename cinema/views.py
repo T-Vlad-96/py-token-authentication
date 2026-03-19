@@ -52,8 +52,28 @@ class MovieViewSet(viewsets.ViewSet):
         "genres", "actors"
     )
 
+    @staticmethod
+    def query_params_to_int_list(query_params: str) -> list:
+        return [int(i) for i in query_params.split(",")]
+
     def list(self, request):
+        title = request.query_params.get("title", None)
+        genres = request.query_params.get("genres", None)
+        actors = request.query_params.get("actors", None)
+
+        if title:
+            self.queryset = self.queryset.filter(title__icontains=title)
+
+        if genres:
+            genres_ids = self.query_params_to_int_list(genres)
+            self.queryset = self.queryset.filter(genres__id__in=genres_ids)
+
+        if actors:
+            actors_ids = self.query_params_to_int_list(actors)
+            self.queryset = self.queryset.filter(actors__id__in=actors_ids)
+
         serializer = MovieListSerializer(self.queryset, many=True)
+
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def create(self, request):
@@ -68,51 +88,15 @@ class MovieViewSet(viewsets.ViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class MovieListCreateView(ListCreateAPIView):
-    queryset = Movie.objects.all()
-    serializer_class = MovieListSerializer
-
-    @staticmethod
-    def _params_to_ints(qs):
-        """Converts a list of string IDs to a list of integers"""
-        return [int(str_id) for str_id in qs.split(",")]
-
-    def get_queryset(self):
-        """Retrieve the movies with filters"""
-        title = self.request.query_params.get("title")
-        genres = self.request.query_params.get("genres")
-        actors = self.request.query_params.get("actors")
-
-        queryset = self.queryset
-
-        if title:
-            queryset = queryset.filter(title__icontains=title)
-
-        if genres:
-            genres_ids = self._params_to_ints(genres)
-            queryset = queryset.filter(genres__id__in=genres_ids)
-
-        if actors:
-            actors_ids = self._params_to_ints(actors)
-            queryset = queryset.filter(actors__id__in=actors_ids)
-
-        return queryset.distinct()
-
-
-class MovieDetailView(RetrieveAPIView):
-    queryset = Movie.objects.all()
-    serializer_class = MovieDetailSerializer
-
-
 class MovieSessionViewSet(viewsets.ModelViewSet):
     queryset = (
         MovieSession.objects.all()
         .select_related("movie", "cinema_hall")
         .annotate(
             tickets_available=(
-                F("cinema_hall__rows")
-                * F("cinema_hall__seats_in_row")
-                - Count("tickets")
+                    F("cinema_hall__rows")
+                    * F("cinema_hall__seats_in_row")
+                    - Count("tickets")
             )
         )
     )

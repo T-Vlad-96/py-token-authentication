@@ -6,8 +6,6 @@ from cinema.views import (
     ActorViewSet,
     CinemaHallViewSet,
     MovieSessionViewSet,
-    MovieListCreateView,
-    MovieDetailView,
     OrderCreateListViewSet,
     MovieViewSet
 )
