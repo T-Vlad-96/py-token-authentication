@@ -21,7 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        password = validated_data.pop("password", None)
+        password = validated_data.pop("password")
         user = get_user_model().objects.create_user(
             **validated_data
         )
@@ -30,7 +30,7 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
     def update(self, instance, validated_data):
-        password = validated_data.pop("password")
+        password = validated_data.pop("password", None)
         instance = super().update(
             instance=instance,
             validated_data=validated_data
