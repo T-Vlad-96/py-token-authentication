@@ -1,6 +1,9 @@
 from datetime import datetime
 
 from django.db.models import F, Count
+from rest_framework.renderers import (
+    BrowsableAPIRenderer, JSONRenderer
+)
 from rest_framework import viewsets
 from rest_framework import status
 from rest_framework.generics import (
@@ -10,6 +13,7 @@ from rest_framework.generics import (
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.settings import DEFAULTS
 
 from cinema.models import Genre, Actor, CinemaHall, Movie, MovieSession, Order
 
@@ -43,44 +47,25 @@ class CinemaHallViewSet(ListCreateAPIView):
     serializer_class = CinemaHallSerializer
 
 
-class MovieViewSet(viewsets.ModelViewSet):
-    queryset = Movie.objects.prefetch_related("genres", "actors")
-    serializer_class = MovieSerializer
+class MovieViewSet(viewsets.ViewSet):
+    queryset = Movie.objects.all().prefetch_related(
+        "genres", "actors"
+    )
 
-    @staticmethod
-    def _params_to_ints(qs):
-        """Converts a list of string IDs to a list of integers"""
-        return [int(str_id) for str_id in qs.split(",")]
+    def list(self, request):
+        serializer = MovieListSerializer(self.queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def get_queryset(self):
-        """Retrieve the movies with filters"""
-        title = self.request.query_params.get("title")
-        genres = self.request.query_params.get("genres")
-        actors = self.request.query_params.get("actors")
+    def create(self, request):
+        serializer = MovieSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        queryset = self.queryset
-
-        if title:
-            queryset = queryset.filter(title__icontains=title)
-
-        if genres:
-            genres_ids = self._params_to_ints(genres)
-            queryset = queryset.filter(genres__id__in=genres_ids)
-
-        if actors:
-            actors_ids = self._params_to_ints(actors)
-            queryset = queryset.filter(actors__id__in=actors_ids)
-
-        return queryset.distinct()
-
-    def get_serializer_class(self):
-        if self.action == "list":
-            return MovieListSerializer
-
-        if self.action == "retrieve":
-            return MovieDetailSerializer
-
-        return MovieSerializer
+    def retrieve(self, request, pk=None):
+        movie = Movie.objects.get(pk=pk)
+        serializer = MovieDetailSerializer(movie)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class MovieListCreateView(ListCreateAPIView):
@@ -125,9 +110,9 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
         .select_related("movie", "cinema_hall")
         .annotate(
             tickets_available=(
-                F("cinema_hall__rows")
-                * F("cinema_hall__seats_in_row")
-                - Count("tickets")
+                    F("cinema_hall__rows")
+                    * F("cinema_hall__seats_in_row")
+                    - Count("tickets")
             )
         )
     )
